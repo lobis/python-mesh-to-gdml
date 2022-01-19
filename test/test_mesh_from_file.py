@@ -6,7 +6,7 @@ from stl.mesh import Mesh
 
 
 class TestMeshFromFile(unittest.TestCase):
-    files_dir = os.path.abspath("../files")
+    files_dir = os.path.abspath(os.path.join(os.path.realpath(__file__), "../../files"))
 
     def test_files_dir_exists(self):
         self.assertTrue(os.path.isdir(self.files_dir), f"files directory '{self.files_dir}' does not exist")
