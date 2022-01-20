@@ -63,7 +63,7 @@ def process_mesh(mesh, name):
 
 def main():
     print("starting...")
-    mesh = Mesh.from_file("files/cube.stl")
+    mesh = Mesh.from_file("files/cube.ascii.stl")
 
     tree = process_mesh(mesh, "mesh")
     ET.indent(tree)
