@@ -1,13 +1,11 @@
-from src.mesh2gdml import Stl
+from mesh2gdml import Stl, Mesh
 
 import xml.etree.cElementTree as ET
 import argparse
+import numpy as np
 
-# import xmlschema
 
-
-def process_mesh(mesh, name):
-    print("processing mesh...")
+def process_mesh(mesh: Mesh, name: str):
     root = ET.Element(
         "gdml",
         **{
@@ -29,7 +27,7 @@ def process_mesh(mesh, name):
     ET.SubElement(volume, "materialref", ref="G4_Pb")
     ET.SubElement(volume, "solidref", ref=f"{name}_solid")
 
-    def serialize_vertex(three_vector):
+    def serialize_vertex(three_vector: np.ndarray):
         assert len(three_vector) == 3
         result = dict()
         for i, x_i in enumerate(["x", "y", "z"]):
@@ -37,9 +35,10 @@ def process_mesh(mesh, name):
         return result
 
     vertices_to_name = dict()  # numpy array is not hashable, so we convert to string
-    for triangle in mesh.vertices:
+    for face in mesh.faces:
         face_vertices = {}
-        for vertex in triangle:
+        for vertex_index in face:
+            vertex = mesh.vertices[vertex_index]
             vertex_hash = vertex.data.tobytes()
             if vertex_hash not in vertices_to_name:
                 vertices_to_name[vertex_hash] = f"{name}_v{len(vertices_to_name)}"
@@ -56,7 +55,6 @@ def process_mesh(mesh, name):
             ]
         ET.SubElement(tessellated, "triangular", **face_vertices)
 
-    # world
     _world_solid = ET.SubElement(
         solids, "box", name="world_solid", x="100", y="100", z="100"
     )
@@ -69,8 +67,6 @@ def process_mesh(mesh, name):
 
     setup = ET.SubElement(root, "setup", name="Default", version="1.0")
     ET.SubElement(setup, "world", ref="world")
-
-    print("processing mesh done!")
 
     return ET.ElementTree(root)
 
@@ -110,10 +106,7 @@ def main():
     tree = process_mesh(mesh, "mesh")
     ET.indent(tree)
 
-    # schema = xmlschema.XMLSchema("https://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd")
-    # print(schema.is_valid(tree))
-
-    tree.write("mesh.gdml", encoding="UTF-8", xml_declaration=True)
+    tree.write(args.output, encoding="UTF-8", xml_declaration=True)
 
 
 if __name__ == "__main__":
