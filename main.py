@@ -1,24 +1,29 @@
-from stl.mesh import Mesh
+from src.mesh2gdml import Stl
 
 import xml.etree.cElementTree as ET
-
+import argparse
 
 # import xmlschema
 
 
 def process_mesh(mesh, name):
     print("processing mesh...")
-    root = ET.Element("gdml",
-                      **{"xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-                         "xsi:noNamespaceSchemaLocation": "https://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd"}
-                      )
+    root = ET.Element(
+        "gdml",
+        **{
+            "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+            "xsi:noNamespaceSchemaLocation": "https://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd",
+        },
+    )
 
     define = ET.SubElement(root, "define")
-    materials = ET.SubElement(root, "materials")
+    _materials = ET.SubElement(root, "materials")
     solids = ET.SubElement(root, "solids")
     structure = ET.SubElement(root, "structure")
 
-    tessellated = ET.SubElement(solids, "tessellated", name=f"{name}_solid", aunit="deg", lunit="mm")
+    tessellated = ET.SubElement(
+        solids, "tessellated", name=f"{name}_solid", aunit="deg", lunit="mm"
+    )
 
     volume = ET.SubElement(structure, "volume", name=f"{name}_volume")
     ET.SubElement(volume, "materialref", ref="G4_Pb")
@@ -32,20 +37,29 @@ def process_mesh(mesh, name):
         return result
 
     vertices_to_name = dict()  # numpy array is not hashable, so we convert to string
-    for triangle in mesh.vectors:
+    for triangle in mesh.vertices:
         face_vertices = {}
         for vertex in triangle:
             vertex_hash = vertex.data.tobytes()
             if vertex_hash not in vertices_to_name:
                 vertices_to_name[vertex_hash] = f"{name}_v{len(vertices_to_name)}"
-                ET.SubElement(define, "position", name=vertices_to_name[vertex_hash], unit="mm",
-                              **serialize_vertex(vertex))
+                ET.SubElement(
+                    define,
+                    "position",
+                    name=vertices_to_name[vertex_hash],
+                    unit="mm",
+                    **serialize_vertex(vertex),
+                )
 
-            face_vertices[f"vertex{len(face_vertices) + 1}"] = vertices_to_name[vertex_hash]
+            face_vertices[f"vertex{len(face_vertices) + 1}"] = vertices_to_name[
+                vertex_hash
+            ]
         ET.SubElement(tessellated, "triangular", **face_vertices)
 
     # world
-    world_solid = ET.SubElement(solids, "box", name="world_solid", x="100", y="100", z="100")
+    _world_solid = ET.SubElement(
+        solids, "box", name="world_solid", x="100", y="100", z="100"
+    )
     world_volume = ET.SubElement(structure, "volume", name="world")
     physical_volume = ET.SubElement(world_volume, "physvol", name=name)
     ET.SubElement(physical_volume, "volumeref", ref=f"{name}_volume")
@@ -62,8 +76,36 @@ def process_mesh(mesh, name):
 
 
 def main():
-    print("starting...")
-    mesh = Mesh.from_file("files/cube.ascii.stl")
+    parser = argparse.ArgumentParser(description="Convert STL to GDML")
+
+    # input and output are optional arguments
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=str,
+        default="files/cube.ascii.stl",
+        help="input file path",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="mesh.gdml",
+        help="output file path",
+    )
+
+    args = parser.parse_args()
+
+    # make sure input file exists
+    try:
+        with open(args.input, "r") as _:
+            pass
+    except FileNotFoundError:
+        print("Input file not found")
+        return
+
+    mesh = Stl.from_file(args.input)
 
     tree = process_mesh(mesh, "mesh")
     ET.indent(tree)
@@ -73,8 +115,6 @@ def main():
 
     tree.write("mesh.gdml", encoding="UTF-8", xml_declaration=True)
 
-    print("done!")
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

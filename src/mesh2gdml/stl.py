@@ -13,7 +13,6 @@ ATTRIBUTE_SIZE_BYTES = 2
 
 
 class Stl(Mesh):
-
     @classmethod
     def __vertices_to_mesh(cls, vectors):
         assert len(vectors) % 3 == 0
@@ -50,7 +49,15 @@ class Stl(Mesh):
         if not footer.lstrip().lower().startswith(b"endsolid"):
             raise Exception("bad stl end")
 
-        sequence = [b"facet normal", b"outer loop", b"vertex", b"vertex", b"vertex", b"endloop", b"endfacet"]
+        sequence = [
+            b"facet normal",
+            b"outer loop",
+            b"vertex",
+            b"vertex",
+            b"vertex",
+            b"endloop",
+            b"endfacet",
+        ]
         assert (len(lines) - 2) % len(sequence) == 0
         triangle_count = int((len(lines) - 2) / len(sequence))
 
@@ -74,10 +81,13 @@ class Stl(Mesh):
     @classmethod
     def __from_binary(cls, file_handle):
         file_handle.read(HEADER_SIZE_BYTES)  # Header
-        triangle_count = int.from_bytes(file_handle.read(TRIANGLE_COUNT_SIZE), byteorder="little")
+        triangle_count = int.from_bytes(
+            file_handle.read(TRIANGLE_COUNT_SIZE), byteorder="little"
+        )
         file_handle.seek(0, os.SEEK_END)
-        triangle_count_expected = (file_handle.tell() - HEADER_SIZE_BYTES - TRIANGLE_COUNT_SIZE) / \
-                                  (4 * VECTOR_SIZE_BYTES + ATTRIBUTE_SIZE_BYTES)
+        triangle_count_expected = (
+            file_handle.tell() - HEADER_SIZE_BYTES - TRIANGLE_COUNT_SIZE
+        ) / (4 * VECTOR_SIZE_BYTES + ATTRIBUTE_SIZE_BYTES)
 
         assert triangle_count == triangle_count_expected
         file_handle.seek(HEADER_SIZE_BYTES + TRIANGLE_COUNT_SIZE)
@@ -87,7 +97,9 @@ class Stl(Mesh):
         for i in range(triangle_count):
             file_handle.read(VECTOR_SIZE_BYTES)  # facet normal
             for k in range(3):
-                vectors[counter, :] = numpy.frombuffer(file_handle.read(VECTOR_SIZE_BYTES), dtype=np.float32)
+                vectors[counter, :] = numpy.frombuffer(
+                    file_handle.read(VECTOR_SIZE_BYTES), dtype=np.float32
+                )
                 counter += 1
 
             file_handle.read(ATTRIBUTE_SIZE_BYTES)

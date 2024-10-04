@@ -1,34 +1,42 @@
-import unittest
-
 import os
+import pytest
+import sys
 
-from stl.mesh import Mesh
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
-from ..src.mesh2gdml import Stl
-
-
-class TestMeshFromFile(unittest.TestCase):
-    files_dir = os.path.abspath(os.path.join(os.path.realpath(__file__), "../../files"))
-
-    def test_files_dir_exists(self):
-        self.assertTrue(os.path.isdir(self.files_dir), f"files directory '{self.files_dir}' does not exist")
-
-    def test_mesh_from_file_cube(self):
-        stl_file = os.path.join(self.files_dir, "cube.ascii.stl")
-        self.assertTrue(os.path.isfile(stl_file))
-
-        mesh = Stl.from_file(stl_file)
-
-        self.assertEqual(len(mesh.faces), 12)  # cube has 12 triangular faces (2 per side)
-
-    def test_mesh_from_file_cylinder(self):
-        stl_file = os.path.join(self.files_dir, "cylinder.stl")
-        self.assertTrue(os.path.isfile(stl_file))
-
-        mesh = Stl.from_file(stl_file)
-
-        self.assertEqual(len(mesh.faces), 636)  # cylinder has 636 triangular faces for this mesh refinement
+from mesh2gdml import Stl
 
 
-if __name__ == '__main__':
-    unittest.main()
+files_dir = os.path.abspath(os.path.join(os.path.realpath(__file__), "../../files"))
+
+
+@pytest.fixture
+def cube_file():
+    return os.path.join(files_dir, "cube.ascii.stl")
+
+
+@pytest.fixture
+def cylinder_file():
+    return os.path.join(files_dir, "cylinder.stl")
+
+
+def test_files_dir_exists():
+    assert os.path.isdir(files_dir), f"files directory '{files_dir}' does not exist"
+
+
+def test_mesh_from_file_cube(cube_file):
+    assert os.path.isfile(cube_file)
+
+    mesh = Stl.from_file(cube_file)
+
+    assert len(mesh.faces) == 12  # cube has 12 triangular faces (2 per side)
+
+
+def test_mesh_from_file_cylinder(cylinder_file):
+    assert os.path.isfile(cylinder_file)
+
+    mesh = Stl.from_file(cylinder_file)
+
+    assert (
+        len(mesh.faces) == 636
+    )  # cylinder has 636 triangular faces for this mesh refinement
